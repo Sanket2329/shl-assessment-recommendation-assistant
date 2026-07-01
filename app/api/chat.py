@@ -6,13 +6,23 @@ from app.schemas.chat import (
     ChatResponse,
     Recommendation,
 )
+print("Schemas imported", flush=True)
 
 from app.services.embedding_service import EmbeddingService
+
+print("EmbeddingService imported", flush=True)
+
 from app.services.vector_service import VectorService
+
+print("VectorService imported", flush=True)
+
 from app.services.llm_service import LLMService
+
+print("LLMService imported", flush=True)
 
 router = APIRouter()
 
+print("Router created", flush=True)
 
 def get_match_score(score: float, name: str) -> str:
     name = name.lower()
