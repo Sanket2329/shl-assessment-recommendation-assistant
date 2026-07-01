@@ -13,10 +13,6 @@ from app.services.llm_service import LLMService
 
 router = APIRouter()
 
-embedding_service = EmbeddingService()
-vector_service = VectorService()
-llm_service = LLMService()
-
 
 def get_match_score(score: float, name: str) -> str:
     name = name.lower()
@@ -37,6 +33,11 @@ def get_match_score(score: float, name: str) -> str:
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+
+    embedding_service = EmbeddingService()
+    vector_service = VectorService()
+    llm_service = LLMService()
+
     conversation_context = "\n".join(
         [
             f"{message.role}: {message.content}"
