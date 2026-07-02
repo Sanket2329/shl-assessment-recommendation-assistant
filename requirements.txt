@@ -1,18 +1,18 @@
-fastapi
-uvicorn[standard]
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
 
 google-genai==2.10.0
 
-sentence-transformers
-torch
-transformers
+sentence-transformers==3.3.1
+transformers==4.46.3
+torch==2.5.1
 
-qdrant-client
+qdrant-client==1.15.1
 
-beautifulsoup4
-requests
-python-dotenv
+beautifulsoup4==4.13.4
+requests==2.32.4
+python-dotenv==1.1.1
 
-pydantic
+pydantic==2.11.7
 
-streamlit
+streamlit==1.46.1
