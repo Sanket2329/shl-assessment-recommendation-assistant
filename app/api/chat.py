@@ -54,7 +54,6 @@ INJECTION_PATTERNS = [
     "override",
 ]
 
-
 KEY_TO_TEST_TYPE = {
     "Ability & Aptitude": "A",
     "Biodata & Situational Judgment": "B",
@@ -73,8 +72,10 @@ def get_test_type(keys: list) -> str:
         if code:
             return code
     return "K"
-    name_lower = name.lower()
 
+
+def get_match_score(score: float, name: str) -> str:
+    name_lower = name.lower()
     if "live coding" in name_lower:
         return "High"
     if "framework" in name_lower:
@@ -113,7 +114,6 @@ def chat(request: ChatRequest):
     query = latest_message.strip()
     query_lower = query.lower()
 
-    # Build full conversation context for embedding + LLM
     conversation_context = "\n".join(
         f"{msg.role}: {msg.content}"
         for msg in request.messages
@@ -181,7 +181,7 @@ def chat(request: ChatRequest):
     query_vector = embedding_service.embed(conversation_context)
 
     logger.info("Querying Qdrant vector store")
-    results = vector_service.search(query_vector, limit=10)  # broader pool for Gemini to reason over
+    results = vector_service.search(query_vector, limit=10)
 
     assessments = []
     for point in results.points:
