@@ -16,10 +16,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# ---------------------------------------------------------------------------
-# Keyword sets
-# ---------------------------------------------------------------------------
-
 SHL_KEYWORDS = {
     "assessment", "test", "candidate", "hiring", "recruit",
     "developer", "engineer", "manager", "sales", "java", "python",
@@ -32,7 +28,6 @@ SHL_KEYWORDS = {
 
 COMPARISON_KEYWORDS = {"compare", "difference", "vs", "versus"}
 
-# Queries that are so vague we must ask for more detail before searching
 VAGUE_QUERIES = {
     "assessment",
     "test",
@@ -44,7 +39,6 @@ VAGUE_QUERIES = {
     "suggest test",
 }
 
-# Prompt-injection patterns — phrases that try to redirect the assistant
 INJECTION_PATTERNS = [
     "ignore previous",
     "ignore all previous",
@@ -60,10 +54,6 @@ INJECTION_PATTERNS = [
     "override",
 ]
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def get_match_score(score: float, name: str) -> str:
     name_lower = name.lower()
@@ -94,10 +84,6 @@ def is_comparison_request(text: str) -> bool:
     return any(keyword in lower for keyword in COMPARISON_KEYWORDS)
 
 
-# ---------------------------------------------------------------------------
-# Route
-# ---------------------------------------------------------------------------
-
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     logger.info("Chat request received — %d message(s)", len(request.messages))
@@ -116,9 +102,6 @@ def chat(request: ChatRequest):
         for msg in request.messages
     )
 
-    # ------------------------------------------------------------------
-    # Guard: prompt injection
-    # ------------------------------------------------------------------
     if is_prompt_injection(query):
         logger.warning("Prompt injection attempt detected")
         return ChatResponse(
@@ -131,9 +114,6 @@ def chat(request: ChatRequest):
             end_of_conversation=False,
         )
 
-    # ------------------------------------------------------------------
-    # Guard: off-topic query
-    # ------------------------------------------------------------------
     if not is_shl_related(query):
         logger.info("Off-topic query rejected")
         return ChatResponse(
@@ -147,9 +127,6 @@ def chat(request: ChatRequest):
             end_of_conversation=False,
         )
 
-    # ------------------------------------------------------------------
-    # Guard: vague query — ask for clarification
-    # ------------------------------------------------------------------
     if query_lower in VAGUE_QUERIES:
         logger.info("Vague query — requesting clarification")
         return ChatResponse(
@@ -164,9 +141,6 @@ def chat(request: ChatRequest):
             end_of_conversation=False,
         )
 
-    # ------------------------------------------------------------------
-    # Comparison flow
-    # ------------------------------------------------------------------
     if is_comparison_request(query):
         logger.info("Comparison request detected")
 
@@ -186,17 +160,11 @@ def chat(request: ChatRequest):
                 end_of_conversation=False,
             )
 
-        # Could not match two assessments by name — fall through to
-        # semantic search so we can still return something useful
-
-    # ------------------------------------------------------------------
-    # Main flow: semantic search + LLM recommendation
-    # ------------------------------------------------------------------
     logger.info("Generating query embedding")
     query_vector = embedding_service.embed(conversation_context)
 
     logger.info("Querying Qdrant vector store")
-    results = vector_service.search(query_vector, limit=10)
+    results = vector_service.search(query_vector, limit=10)  # broader pool for Gemini to reason over
 
     assessments = []
     for point in results.points:
@@ -215,7 +183,7 @@ def chat(request: ChatRequest):
     payload_lookup = {item["name"]: item for item in assessments}
 
     recommendations = []
-    for item in result["recommendations"][:10]:
+    for item in result["recommendations"][:5]:
         payload = payload_lookup.get(item["assessment_name"])
 
         if not payload:
@@ -237,15 +205,12 @@ def chat(request: ChatRequest):
             )
         )
 
-    # Sort by retrieval_score descending (Option B) so the order always
-    # reflects semantic relevance, regardless of LLM re-ranking
     recommendations.sort(
         key=lambda r: r.retrieval_score or 0.0,
         reverse=True,
     )
 
-    # Cap at 10 as per evaluation criteria
-    recommendations = recommendations[:10]
+    recommendations = recommendations[:5]
 
     return ChatResponse(
         reply=result["summary"],
