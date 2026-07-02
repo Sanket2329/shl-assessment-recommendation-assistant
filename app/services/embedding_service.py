@@ -1,20 +1,39 @@
+import os
+
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+load_dotenv()
+
+EMBEDDING_MODEL = "models/gemini-embedding-001"
+EMBEDDING_DIMENSIONS = 768
+
+
 class EmbeddingService:
-    _model = None
+    _client = None
 
     @classmethod
-    def get_model(cls):
-        if cls._model is None:
-            print("STEP 1", flush=True)
+    def get_client(cls):
+        if cls._client is None:
+            api_key = os.getenv("GEMINI_API_KEY")
 
-            from sentence_transformers import SentenceTransformer
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY not found")
 
-            print("STEP 2", flush=True)
+            cls._client = genai.Client(api_key=api_key)
 
-            cls._model = SentenceTransformer("models/all-MiniLM-L6-v2")
+        return cls._client
 
-            print("STEP 3", flush=True)
+    def embed(self, text: str) -> list[float]:
+        client = self.get_client()
 
-        return cls._model
+        response = client.models.embed_content(
+            model=EMBEDDING_MODEL,
+            contents=text,
+            config=types.EmbedContentConfig(
+                output_dimensionality=EMBEDDING_DIMENSIONS,
+            ),
+        )
 
-    def embed(self, text):
-        return self.get_model().encode(text).tolist()
+        return response.embeddings[0].values

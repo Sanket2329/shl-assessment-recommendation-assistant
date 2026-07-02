@@ -29,7 +29,7 @@ class VectorService:
             self.client.create_collection(
                 collection_name=self.COLLECTION_NAME,
                 vectors_config=VectorParams(
-                    size=384,
+                    size=768,
                     distance=Distance.COSINE,
                 ),
             )

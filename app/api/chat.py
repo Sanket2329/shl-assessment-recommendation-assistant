@@ -1,29 +1,17 @@
-from fastapi import APIRouter
 import json
+
+from fastapi import APIRouter
 
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
     Recommendation,
 )
-
-print("Schemas imported", flush=True)
-
 from app.services.embedding_service import EmbeddingService
-
-print("EmbeddingService imported", flush=True)
-
+from app.services.llm_service import LLMService
 from app.services.vector_service import VectorService
 
-print("VectorService imported", flush=True)
-
-from app.services.llm_service import LLMService
-
-print("LLMService imported", flush=True)
-
 router = APIRouter()
-
-print("Router created", flush=True)
 
 
 def get_match_score(score: float, name: str) -> str:
@@ -45,23 +33,15 @@ def get_match_score(score: float, name: str) -> str:
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
-
-    print("1. Chat request received", flush=True)
+    print("Chat request received", flush=True)
 
     embedding_service = EmbeddingService()
-    print("2. EmbeddingService created", flush=True)
-
     vector_service = VectorService()
-    print("3. VectorService created", flush=True)
-
     llm_service = LLMService()
-    print("4. LLMService created", flush=True)
 
     conversation_context = "\n".join(
-        [
-            f"{message.role}: {message.content}"
-            for message in request.messages
-        ]
+        f"{message.role}: {message.content}"
+        for message in request.messages
     )
 
     latest_message = request.messages[-1].content
@@ -91,22 +71,10 @@ def chat(request: ChatRequest):
         "job",
     ]
 
-    is_shl_query = any(
-        keyword in query
-        for keyword in shl_keywords
-    )
+    is_shl_query = any(keyword in query for keyword in shl_keywords)
 
-    comparison_keywords = [
-        "compare",
-        "difference",
-        "vs",
-        "versus",
-    ]
-
-    is_comparison = any(
-        keyword in query
-        for keyword in comparison_keywords
-    )
+    comparison_keywords = ["compare", "difference", "vs", "versus"]
+    is_comparison = any(keyword in query for keyword in comparison_keywords)
 
     vague_queries = [
         "assessment",
@@ -133,24 +101,15 @@ def chat(request: ChatRequest):
         with open("app/data/catalog.json", "r") as f:
             catalog = json.load(f)
 
-        matched = []
-
-        for assessment in catalog:
-            name = assessment["name"].lower()
-
-            if name in query:
-                matched.append(assessment)
+        matched = [
+            assessment
+            for assessment in catalog
+            if assessment["name"].lower() in query
+        ]
 
         if len(matched) >= 2:
-            comparison = llm_service.compare(
-                matched[0],
-                matched[1],
-            )
-
-            return ChatResponse(
-                reply=comparison,
-                recommendations=[],
-            )
+            comparison = llm_service.compare(matched[0], matched[1])
+            return ChatResponse(reply=comparison, recommendations=[])
 
     # Reject non-SHL queries
     if not is_shl_query:
@@ -163,49 +122,31 @@ def chat(request: ChatRequest):
             recommendations=[],
         )
 
-    # Generate embedding
-    print("5. Generating embedding...", flush=True)
-
+    # Generate embedding and search
+    print("Generating embedding...", flush=True)
     query_vector = embedding_service.embed(conversation_context)
 
-    print("6. Embedding complete", flush=True)
-
-    # Retrieve top assessments
-    print("7. Searching Qdrant...", flush=True)
-
-    results = vector_service.search(
-        query_vector,
-        limit=10,
-    )
-
-    print("8. Qdrant search complete", flush=True)
+    print("Searching Qdrant...", flush=True)
+    results = vector_service.search(query_vector, limit=10)
 
     assessments = []
-
     for point in results.points:
         payload = point.payload.copy()
         payload["retrieval_score"] = round(point.score, 3)
         assessments.append(payload)
 
     # Gemini recommendations
-    print("9. Calling Gemini...", flush=True)
-
+    print("Calling Gemini...", flush=True)
     result = llm_service.recommend(
         conversation_context,
         latest_message,
         assessments,
     )
+    print("Gemini complete", flush=True)
 
-    print("10. Gemini complete", flush=True)
-
-    # Create lookup table
-    payload_lookup = {
-        item["name"]: item
-        for item in assessments
-    }
+    payload_lookup = {item["name"]: item for item in assessments}
 
     recommendations = []
-
     for item in result["recommendations"][:5]:
         payload = payload_lookup.get(item["assessment_name"])
 
