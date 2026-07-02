@@ -143,7 +143,7 @@ Recommendations are sorted by `retrieval_score` descending (highest semantic rel
 I need assessments for a Java developer.
 ```
 
-Returns 5 assessments with valid SHL URLs, retrieval scores, and reasons.
+Returns top 5 assessments with valid SHL URLs, retrieval scores, and reasons.
 
 ---
 
