@@ -24,6 +24,8 @@ class Recommendation(BaseModel):
     match_score: Optional[str] = None
     reason: Optional[str] = None
 
+
 class ChatResponse(BaseModel):
     reply: str
-    recommendations: List[Recommendation]
+    recommendations: List[Recommendation] = []
+    end_of_conversation: bool = False

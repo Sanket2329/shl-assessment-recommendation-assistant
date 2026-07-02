@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 
 from dotenv import load_dotenv
 from google import genai
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class LLMService:
@@ -134,9 +137,7 @@ Format:
             return json.loads(text)
 
         except Exception as e:
-            print("\n========== GEMINI ERROR ==========")
-            print(e)
-            print("==================================\n")
+            logger.error("Gemini recommendation error: %s", e)
 
             return {
                 "summary": "Unable to generate recommendations at the moment.",

@@ -1,53 +1,57 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-print("Loading app...", flush=True)
+# Configure structured logging for the whole application
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
 
 from app.api.chat import router as chat_router
 from app.services.embedding_service import EmbeddingService
-from app.services.llm_service import LLMService
-from app.services.vector_service import VectorService
 
-print("Imports complete", flush=True)
+logger.info("Application modules loaded")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Warm up all services once at startup so the first request is fast
-    print("Warming up services...", flush=True)
-
+    # Warm up the Gemini client once at startup so the first request is fast
+    logger.info("Warming up services...")
     try:
         EmbeddingService.get_client()
-        print("EmbeddingService ready", flush=True)
-    except Exception as e:
-        print(f"EmbeddingService warm-up failed: {e}", flush=True)
+        logger.info("EmbeddingService client ready")
+    except Exception as exc:
+        logger.error("EmbeddingService warm-up failed: %s", exc)
 
-    print("All services warmed up", flush=True)
-
+    logger.info("Application startup complete")
     yield
-
-    print("App shutting down", flush=True)
+    logger.info("Application shutting down")
 
 
 app = FastAPI(
     title="SHL Assessment Recommender",
+    description=(
+        "AI-powered SHL assessment recommendation API. "
+        "Submit a hiring requirement or job description and receive "
+        "ranked SHL assessment recommendations with explanations."
+    ),
     version="1.0.0",
     lifespan=lifespan,
 )
 
-print("FastAPI created", flush=True)
-
 app.include_router(chat_router)
 
-print("Router attached", flush=True)
 
-
-@app.get("/")
+@app.get("/", tags=["General"])
 def root():
-    return {"message": "SHL Assessment Recommender API"}
+    return {"message": "SHL Assessment Recommender API", "docs": "/docs"}
 
 
-@app.get("/health")
+@app.get("/health", tags=["General"])
 def health():
     return {"status": "healthy"}
