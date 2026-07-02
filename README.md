@@ -88,7 +88,7 @@ shl-assignment/
 Returns service status.
 
 ```json
-{ "status": "healthy" }
+{ "status": "ok" }
 ```
 
 ---
@@ -119,6 +119,7 @@ Main recommendation endpoint. Accepts a conversation history and returns recomme
     {
       "name": "Core Java (Advanced Level) (New)",
       "url": "https://www.shl.com/products/product-catalog/view/core-java-advanced-level-new/",
+      "test_type": "K",
       "duration": "13 minutes",
       "remote": "yes",
       "adaptive": "no",
@@ -131,7 +132,7 @@ Main recommendation endpoint. Accepts a conversation history and returns recomme
 }
 ```
 
-Recommendations are sorted by `retrieval_score` descending (highest semantic relevance first). Up to 10 assessments are returned.
+Recommendations are sorted by `retrieval_score` descending (highest semantic relevance first). Between 1 and 10 assessments are returned once the agent has enough context.
 
 ---
 
@@ -143,7 +144,7 @@ Recommendations are sorted by `retrieval_score` descending (highest semantic rel
 I need assessments for a Java developer.
 ```
 
-Returns 1-10 assessments with valid SHL URLs, retrieval scores, and reasons.
+Returns 1–10 assessments with valid SHL URLs, `test_type` codes, retrieval scores, and reasons.
 
 ---
 
