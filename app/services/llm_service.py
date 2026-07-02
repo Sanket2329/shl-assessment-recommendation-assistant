@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 
 from dotenv import load_dotenv
 from google import genai
@@ -8,6 +9,30 @@ from google import genai
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_json(text: str) -> dict:
+    text = text.strip()
+
+    # Strip markdown code fences
+    text = re.sub(r"^```(?:json)?", "", text, flags=re.MULTILINE).strip()
+    text = re.sub(r"```$", "", text, flags=re.MULTILINE).strip()
+
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Extract the first {...} block and try again
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(f"Could not parse JSON from Gemini response: {text[:300]}")
 
 
 class LLMService:
@@ -126,14 +151,7 @@ Format:
             )
 
             text = response.text.strip()
-
-            text = (
-                text.replace("```json", "")
-                .replace("```", "")
-                .strip()
-            )
-
-            return json.loads(text)
+            return _parse_json(text)
 
         except Exception as e:
             logger.error("Gemini recommendation error: %s", e)
