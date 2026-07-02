@@ -6,6 +6,7 @@ from app.schemas.chat import (
     ChatResponse,
     Recommendation,
 )
+
 print("Schemas imported", flush=True)
 
 from app.services.embedding_service import EmbeddingService
@@ -23,6 +24,7 @@ print("LLMService imported", flush=True)
 router = APIRouter()
 
 print("Router created", flush=True)
+
 
 def get_match_score(score: float, name: str) -> str:
     name = name.lower()
@@ -44,9 +46,16 @@ def get_match_score(score: float, name: str) -> str:
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
 
+    print("1. Chat request received", flush=True)
+
     embedding_service = EmbeddingService()
+    print("2. EmbeddingService created", flush=True)
+
     vector_service = VectorService()
+    print("3. VectorService created", flush=True)
+
     llm_service = LLMService()
+    print("4. LLMService created", flush=True)
 
     conversation_context = "\n".join(
         [
@@ -155,13 +164,21 @@ def chat(request: ChatRequest):
         )
 
     # Generate embedding
+    print("5. Generating embedding...", flush=True)
+
     query_vector = embedding_service.embed(conversation_context)
 
+    print("6. Embedding complete", flush=True)
+
     # Retrieve top assessments
+    print("7. Searching Qdrant...", flush=True)
+
     results = vector_service.search(
         query_vector,
         limit=10,
     )
+
+    print("8. Qdrant search complete", flush=True)
 
     assessments = []
 
@@ -171,11 +188,15 @@ def chat(request: ChatRequest):
         assessments.append(payload)
 
     # Gemini recommendations
+    print("9. Calling Gemini...", flush=True)
+
     result = llm_service.recommend(
         conversation_context,
         latest_message,
         assessments,
     )
+
+    print("10. Gemini complete", flush=True)
 
     # Create lookup table
     payload_lookup = {
