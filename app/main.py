@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-# Configure structured logging for the whole application
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -20,7 +19,6 @@ logger.info("Application modules loaded")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Warm up the Gemini client once at startup so the first request is fast
     logger.info("Warming up services...")
     try:
         EmbeddingService.get_client()
@@ -54,4 +52,4 @@ def root():
 
 @app.get("/health", tags=["General"])
 def health():
-    return {"status": "healthy"}
+    return {"status": "ok"}

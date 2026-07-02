@@ -55,7 +55,24 @@ INJECTION_PATTERNS = [
 ]
 
 
-def get_match_score(score: float, name: str) -> str:
+KEY_TO_TEST_TYPE = {
+    "Ability & Aptitude": "A",
+    "Biodata & Situational Judgment": "B",
+    "Competencies": "C",
+    "Development & 360": "D",
+    "Assessment Exercises": "E",
+    "Knowledge & Skills": "K",
+    "Personality & Behavior": "P",
+    "Simulations": "S",
+}
+
+
+def get_test_type(keys: list) -> str:
+    for key in keys:
+        code = KEY_TO_TEST_TYPE.get(key)
+        if code:
+            return code
+    return "K"
     name_lower = name.lower()
 
     if "live coding" in name_lower:
@@ -183,7 +200,7 @@ def chat(request: ChatRequest):
     payload_lookup = {item["name"]: item for item in assessments}
 
     recommendations = []
-    for item in result["recommendations"][:5]:
+    for item in result["recommendations"][:10]:
         payload = payload_lookup.get(item["assessment_name"])
 
         if not payload:
@@ -193,6 +210,7 @@ def chat(request: ChatRequest):
             Recommendation(
                 name=payload["name"],
                 url=payload["url"],
+                test_type=get_test_type(payload.get("keys") or []),
                 duration=payload["duration"],
                 remote=payload["remote"],
                 adaptive=payload["adaptive"],
@@ -210,7 +228,7 @@ def chat(request: ChatRequest):
         reverse=True,
     )
 
-    recommendations = recommendations[:5]
+    recommendations = recommendations[:10]
 
     return ChatResponse(
         reply=result["summary"],

@@ -127,7 +127,6 @@ Format:
 
             text = response.text.strip()
 
-            # Remove markdown code fences if Gemini adds them
             text = (
                 text.replace("```json", "")
                 .replace("```", "")

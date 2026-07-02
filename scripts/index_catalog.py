@@ -1,13 +1,3 @@
-"""
-Re-index all assessments into Qdrant using Gemini gemini-embedding-001 (768 dims).
-
-Run this script once after deploying or whenever the catalog changes:
-    python -m scripts.index_catalog
-
-Rate limit: free tier allows 100 requests/min, so this script batches with
-a 65-second pause between batches to stay under the limit.
-"""
-
 import json
 import time
 
@@ -21,13 +11,12 @@ from app.services.embedding_service import EmbeddingService
 from app.services.vector_service import VectorService
 
 COLLECTION_NAME = VectorService.COLLECTION_NAME
-BATCH_SIZE = 90  # stay safely under 100 req/min
-BATCH_PAUSE = 65  # seconds to wait between batches
+BATCH_SIZE = 90
+BATCH_PAUSE = 65
 
 embedding_service = EmbeddingService()
 vector_service = VectorService()
 
-# Drop and recreate the collection so the vector size is always correct
 collections = vector_service.client.get_collections().collections
 existing = [c.name for c in collections]
 
@@ -86,14 +75,12 @@ for i, assessment in enumerate(catalog):
 
     print(f"  [{i + 1}/{total}] Embedded: {assessment.get('name')}", flush=True)
 
-    # Upload in batches and pause to respect rate limits
     if len(points) == BATCH_SIZE:
         vector_service.upload_points(points)
         print(f"\nUploaded batch of {BATCH_SIZE}. Pausing {BATCH_PAUSE}s for rate limit...\n", flush=True)
         points = []
         time.sleep(BATCH_PAUSE)
 
-# Upload any remaining points
 if points:
     vector_service.upload_points(points)
     print(f"\nUploaded final batch of {len(points)}.", flush=True)

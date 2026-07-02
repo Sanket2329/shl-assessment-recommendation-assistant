@@ -15,6 +15,7 @@ class ChatRequest(BaseModel):
 class Recommendation(BaseModel):
     name: str
     url: str
+    test_type: Optional[str] = None
 
     duration: Optional[str] = None
     remote: Optional[str] = None
